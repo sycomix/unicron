@@ -28,9 +28,6 @@ class ValueGroup(Group):
 
         if isinstance(value, dict):
             self.description = description
-            # TODO: Recursive evaluation of nested dicts
-            pass
-
         elif isinstance(self.value, str) or (isinstance(value, int) and not isinstance(value, bool)):
             self.description = description
             self.edit = EditText((10, 40, -0, 20),
@@ -73,7 +70,7 @@ class ValueGroup(Group):
 
     def getValues(self, name):
         try:
-            lambda v: True if 'values'in sorted(docstring[name].keys()) else False
+            lambda v: 'values' in sorted(docstring[name].keys())
             if v: 
                 return docstring[name]['values']
         except:
@@ -96,9 +93,7 @@ class ValueGroup(Group):
         self.w = Window((300, 300), "Help", closable=True, fullSizeContentView=True, titleVisible=False, minSize=(300, 300), maxSize=(600, 800))
 
         self.topics=[]
-        for key in docstring.keys():
-            self.topics.append(key)
-
+        self.topics.extend(iter(docstring.keys()))
         self.pathList = NSPopUpButton.alloc().initWithFrame_(((0, 0), (160, 20)))
         self.pathList.addItemsWithTitles_(self.topics)
 

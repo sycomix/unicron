@@ -23,7 +23,7 @@ class Unicron(object):
 
         # Preferences
         self.homedir = os.path.expanduser('~')
-        self.prefsFolder = self.homedir + "/Library/Preferences/"
+        self.prefsFolder = f"{self.homedir}/Library/Preferences/"
         self.prefsFile = "de.nelsonfritsch.unicron.plist"
 
         if os.path.isfile(self.prefsFolder + self.prefsFile):
@@ -110,13 +110,13 @@ class Unicron(object):
 
         self.w.statusbar = Group((0, -26, 0, 0), blendingMode='behindWindow')
         self.w.statusbar.border = HorizontalLine((0, 0, 0, 1))
-        
+
         self.w.counter = TextBox((16, -20, -16, 15), '', alignment='center', sizeStyle='small')
         self.populateList(self)
         self.w.rowIndicator = Group((0, 0, 0, 10))
 
         self.prefsSetStyle(self)
-        
+
         self.w.open()
 
 
@@ -144,18 +144,17 @@ class Unicron(object):
         self.w.list._removeSelection()
         item = self.pathList.titleOfSelectedItem()
 
-        for i in range(len(self.w.list)):
+        for _ in range(len(self.w.list)):
             del self.w.list[0]
 
-        thisItem = {}
         image = None
         id = os.getuid()
-        systemWarning = "You should not edit or remove existing system's daemons. These jobs are required for a working macOS system."
-
         if item != 'Active Daemons':
+            systemWarning = "You should not edit or remove existing system's daemons. These jobs are required for a working macOS system."
+
             if item == 'User Agents':
                 homedir = os.path.expanduser('~')
-                path = homedir + '/Library/LaunchAgents'
+                path = f'{homedir}/Library/LaunchAgents'
                 # If the folder doesn't exist in the user folder, create it
                 try:
                     os.listdir(path)
@@ -176,6 +175,7 @@ class Unicron(object):
             files = os.listdir(path)
             count = 0
 
+            thisItem = {}
             for file in files:
                 if file.endswith('.plist'):
                     file = file.replace('.plist', '')
@@ -185,7 +185,7 @@ class Unicron(object):
                         pid = False
                     if launchd.LaunchdJob(file).exists() and pid != None:
                         image = NSImage.imageNamed_(NSImageNameStatusAvailable)
-                    elif launchd.LaunchdJob(file).exists() and pid == None:
+                    elif launchd.LaunchdJob(file).exists() and pid is None:
                         image = NSImage.imageNamed_(NSImageNameStatusPartiallyAvailable)
                     else:
                         image = NSImage.imageNamed_(NSImageNameStatusNone)
@@ -194,13 +194,17 @@ class Unicron(object):
                     thisItem['name'] = file
                     self.w.list.append(thisItem)
                     count += 1
-            self.w.counter.set(str(count) + ' Jobs')
+            self.w.counter.set(f'{str(count)} Jobs')
 
 
     def _showInFinder(self, sender):
         file = self.selected['file']
-        subprocess.call(['open', '-R', '%s' % file], cwd='/',
-                        shell=False, universal_newlines=False)
+        subprocess.call(
+            ['open', '-R', f'{file}'],
+            cwd='/',
+            shell=False,
+            universal_newlines=False,
+        )
 
 
     def _loadUnloadDaemon(self, sender, command):
@@ -210,12 +214,22 @@ class Unicron(object):
 
         if bool(launchd.LaunchdJob(name).exists()):
             try:
-                subprocess.call(['launchctl', 'unload', '%s' % path], cwd='/', shell=False, universal_newlines=False)
+                subprocess.call(
+                    ['launchctl', 'unload', f'{path}'],
+                    cwd='/',
+                    shell=False,
+                    universal_newlines=False,
+                )
             except:
                 return
         else:
             try:
-                subprocess.call(['launchctl', 'load', '%s' % path], cwd='/', shell=False, universal_newlines=False)
+                subprocess.call(
+                    ['launchctl', 'load', f'{path}'],
+                    cwd='/',
+                    shell=False,
+                    universal_newlines=False,
+                )
             except:
                 return
 
@@ -231,10 +245,7 @@ class Unicron(object):
 
     def _selectionCallback(self, sender):
         try:
-            if not self.w.list.getSelection():
-                # Application did not finish loading yet
-                pass
-            else:
+            if self.w.list.getSelection():
                 # Get job name
                 self.selected.clear()
                 job = sender.get()[self.w.list.getSelection()[0]]
@@ -247,18 +258,14 @@ class Unicron(object):
                     import getpass
                     username = getpass.getuser()
                     user = username
-                    path = '/Users/%s/Library/Launch' % username
+                    path = f'/Users/{username}/Library/Launch'
                 elif 'Global' in item:
                     user = 'All users'
                     path = '/Library/Launch'
                 elif 'System' in item:
                     user = 'System'
                     path = '/System/Library/Launch'
-                if 'Agents' in item:
-                    path += 'Agents/'
-                else:
-                    path += 'Daemons/'
-
+                path += 'Agents/' if 'Agents' in item else 'Daemons/'
                 self.selected['path'] = path
                 self.selected['file'] = str(self.selected['path'].replace(' ', '\ ')) + job['name'].replace(' ', '\ ') + '.plist'
                 f = open(self.selected['file'], "r")
@@ -316,11 +323,9 @@ class Unicron(object):
 
 
     def _menuCallback(self, sender):
-        items = []
+        items = [dict(title=self.selected['short'], enabled=False), "----"]
 
-        items.append(dict(title=self.selected['short'], enabled=False))
-        items.append("----")
-        if self.selected['status'] == None:
+        if self.selected['status'] is None:
             load, able = 'Load', 'Enable'
         else:
             load, able = 'Unload', 'Disable'
